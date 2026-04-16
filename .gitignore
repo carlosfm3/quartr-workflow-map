@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.DS_Store
+.claude/
+generate_ir_guide.js
+generate_ir_guide.py
+*.docx

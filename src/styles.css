@@ -1,0 +1,98 @@
+/* Quartr Workflow Map — Responsive & UX enhancements */
+
+/* ── Scrollable tab bars (prevent overflow, hide scrollbar) ────────────────── */
+.icp-tabs,
+.period-tabs {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.icp-tabs::-webkit-scrollbar,
+.period-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+/* Keep tabs on a single line while the bar scrolls */
+.icp-tabs > button,
+.period-tabs > button {
+  flex-shrink: 0;
+}
+
+/* ── Step card hover polish ─────────────────────────────────────────────────── */
+.step-card {
+  cursor: pointer;
+}
+.step-card:hover {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.07);
+}
+
+/* ── Mobile (≤ 640 px) ──────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Header */
+  .app-header {
+    padding: 16px 16px 0 !important;
+  }
+
+  /* Stack heading + feature digest vertically */
+  .header-top {
+    flex-direction: column !important;
+    gap: 14px !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Feature digest fills width */
+  .feature-digest {
+    width: 100% !important;
+    min-width: unset !important;
+    box-sizing: border-box;
+  }
+
+  /* Shrink the main headline */
+  .header-h1 {
+    font-size: 22px !important;
+    letter-spacing: -0.6px !important;
+  }
+
+  /* ICP context strip: stack vertically */
+  .icp-strip {
+    padding: 12px 16px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+  }
+
+  /* Period tabs fill the width of the strip on mobile */
+  .period-tabs {
+    width: 100% !important;
+  }
+
+  /* Body padding */
+  .workflow-body {
+    padding: 14px 16px !important;
+  }
+
+  /* Tighter timeline column */
+  .step-timeline {
+    width: 34px !important;
+  }
+
+  /* Slightly smaller dot */
+  .step-dot {
+    width: 28px !important;
+    height: 28px !important;
+  }
+}
+
+/* ── Very small screens (≤ 380 px) ─────────────────────────────────────────── */
+@media (max-width: 380px) {
+  .header-h1 {
+    font-size: 19px !important;
+    letter-spacing: -0.4px !important;
+  }
+
+  .icp-tabs > button {
+    padding: 9px 12px !important;
+    font-size: 12px !important;
+  }
+}

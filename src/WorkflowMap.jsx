@@ -793,6 +793,12 @@ export default function WorkflowMap() {
     : (band === "md" || band === "sm") ? "stackGrid"
     : "stackStrip";
   const isWide = layoutMode === "twoPane";
+  // On narrow viewports (phone strip + tablet-portrait grid) the step list
+  // belongs above the detail pane: pick a step first, then read its pain →
+  // value. md (small laptop / iPad land) keeps detail-first since it has
+  // sideways room and the grid sits comfortably below.
+  const stepsAboveDetail =
+    layoutMode === "stackStrip" || (layoutMode === "stackGrid" && band === "sm");
 
   // The active step. We deliberately don't auto-select on period change so the
   // right pane returns to the "what to lead with" intro view — which is the
@@ -874,7 +880,7 @@ export default function WorkflowMap() {
             On twoPane it sits in the right column. On stack* it leads above
             the step list so the actual sales weapon is above the fold. */}
         <section className="qm-detail" style={{
-          order: layoutMode === "twoPane" ? 2 : 1,
+          order: layoutMode === "twoPane" ? 2 : (stepsAboveDetail ? 2 : 1),
           background: band === "xs" ? "transparent" : Q.card,
           border: band === "xs" ? "none" : `1px solid ${Q.border}`,
           borderRadius: band === "xs" ? 0 : 12,
@@ -894,10 +900,10 @@ export default function WorkflowMap() {
 
         {/* ── STEP LIST ── three forms:
             twoPane    → vertical rail of StepRow with connecting line
-            stackGrid  → 2-col card grid, detail above
-            stackStrip → horizontal scrolling chip strip, detail above */}
+            stackGrid  → 2/3-col card grid (above detail on sm, below on md)
+            stackStrip → horizontal scrolling chip strip, above detail on xs */}
         <aside style={{
-          order: layoutMode === "twoPane" ? 1 : 2,
+          order: layoutMode === "twoPane" ? 1 : (stepsAboveDetail ? 1 : 2),
           position: layoutMode === "twoPane" ? "sticky" : "static",
           top: layoutMode === "twoPane" ? 132 : "auto",
           maxHeight: layoutMode === "twoPane" ? "calc(100vh - 152px)" : "auto",
@@ -953,14 +959,22 @@ export default function WorkflowMap() {
           )}
 
           {layoutMode === "stackStrip" && (
+            // Phone strip. Each wrapper needs flex-shrink: 0 explicitly —
+            // styles.css applies `* { min-width: 0 }` (a standard reset that
+            // prevents flex items from clipping their children) and without
+            // shrink:0 here the wrappers collapse under the cards' minWidth,
+            // so the cards overflow their wrappers and overlap horizontally.
             <div className="qm-strip" style={{
-              display: "flex", gap: 8,
+              display: "flex", gap: 10,
               overflowX: "auto", paddingBottom: 8,
               scrollSnapType: "x proximity",
-              margin: "0 -14px", padding: "0 14px 8px",
+              margin: "0 -14px", padding: "0 14px 10px",
             }}>
               {visibleSteps.map((s) => (
-                <div key={s.id} style={{ scrollSnapAlign: "start" }}>
+                <div key={s.id} style={{
+                  scrollSnapAlign: "start",
+                  flex: "0 0 auto",   // don't grow, don't shrink, base on content
+                }}>
                   <StepCard step={s}
                     isActive={activeId === s.id}
                     onSelect={() => setActiveId(s.id)}
@@ -992,7 +1006,13 @@ export default function WorkflowMap() {
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: Q.med, display: "inline-block" }} /> Medium
         </span>
         <span style={{ opacity: 0.6 }}>·</span>
-        <span>Tap any step on the left to surface its pain → value</span>
+        <span>
+          Tap any step{
+            layoutMode === "twoPane" ? " on the left" :
+            stepsAboveDetail ? " above" :
+            " below"
+          } to surface its pain → value
+        </span>
       </footer>
     </div>
   );

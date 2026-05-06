@@ -19,6 +19,18 @@
   flex-shrink: 0;
 }
 
+/* ── Focus states ──────────────────────────────────────────────────────────── */
+/* Hide the default browser ring so we can paint a Quartr-coloured one. We use
+   :focus-visible so a mouse click never paints a ring — keyboard only.       */
+button:focus { outline: none; }
+.icp-tabs > button:focus-visible,
+.period-tabs > button:focus-visible,
+.step-card:focus-visible {
+  outline: 2px solid #FF4000;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* ── Step card hover polish ─────────────────────────────────────────────────── */
 .step-card {
   cursor: pointer;
@@ -62,9 +74,15 @@
     gap: 10px !important;
   }
 
-  /* Period tabs fill the width of the strip on mobile */
+  /* Period tabs fill the width of the strip on mobile and scroll horizontally
+     when needed (Sellside has 5 tabs which won't fit at 380px). */
   .period-tabs {
     width: 100% !important;
+  }
+  .period-tabs > button {
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    min-height: 32px !important;
   }
 
   /* Body padding */

@@ -6,3 +6,6 @@ generate_ir_guide.js
 generate_ir_guide.py
 *.docx
 package-lock.json
+
+# Vite HMR timestamp files
+vite.config.js.timestamp-*

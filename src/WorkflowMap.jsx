@@ -64,24 +64,31 @@ const Q = {
 const FONT = "'InterVariable', 'Inter', -apple-system, sans-serif";
 
 // ─── ICP Config ───────────────────────────────────────────────────────────────
+// `periods` defines which time-period tabs each ICP exposes, in display order.
+// Sellside follows the workflow-aligned IA from the Sell-Side Navigation PRD
+// (Daily + Pre-Earnings / Earnings / Post-Earnings / Non-Earnings) instead of
+// the time-based Daily/Weekly/Monthly/Yearly used by IR and Buyside.
 const ICPS = {
   IR: {
     label: "Investor Relations", abbr: "IR", icon: "🏢",
     tagline: "Manage the equity story. Protect the share price.",
     accent: Q.ir, dim: Q.irDim, border: Q.irBorder,
     roles: ["Head of IR", "IR Manager", "IR Officer", "CFO"],
+    periods: ["Daily","Weekly","Monthly","Yearly","PreEarnings","EarningsDay","PostEarnings"],
   },
   Buyside: {
     label: "Buyside", abbr: "BUY", icon: "📈",
     tagline: "Find alpha, build conviction, manage risk.",
     accent: Q.buy, dim: Q.buyDim, border: Q.buyBorder,
     roles: ["Portfolio Manager", "Equity Analyst", "Hedge Fund Analyst"],
+    periods: ["Daily","Weekly","Monthly","Yearly","PreEarnings","EarningsDay","PostEarnings"],
   },
   Sellside: {
     label: "Sellside", abbr: "SELL", icon: "🔬",
     tagline: "Cover companies, inform clients, move markets.",
     accent: Q.sell, dim: Q.sellDim, border: Q.sellBorder,
     roles: ["Equity Research Analyst", "Research Associate", "Sector Strategist"],
+    periods: ["Daily","PreEarnings","EarningsDay","PostEarnings","NonEarnings"],
   },
 };
 
@@ -108,9 +115,18 @@ const QF = {
   MCP:        "Claude MCP",
 };
 
-const PERIODS = ["Daily","Weekly","Monthly","Yearly","PreEarnings","EarningsDay","PostEarnings"];
-const PERIOD_ICON  = { Daily:"🕐", Weekly:"📅", Monthly:"🗓️", Yearly:"🏆", PreEarnings:"📋", EarningsDay:"🎤", PostEarnings:"📬" };
-const PERIOD_LABEL = { Daily:"Daily", Weekly:"Weekly", Monthly:"Monthly", Yearly:"Yearly", PreEarnings:"Pre-Earnings", EarningsDay:"Earnings Day", PostEarnings:"Post-Earnings" };
+// Period display metadata. NonEarnings is Sellside-only per PRD §5.4.
+// EarningsDay carries different framing per ICP — kept generic at the metadata
+// layer; section subheadings carry the ICP-specific framing.
+const PERIOD_ICON  = { Daily:"🕐", Weekly:"📅", Monthly:"🗓️", Yearly:"🏆", PreEarnings:"📋", EarningsDay:"🎤", PostEarnings:"📬", NonEarnings:"🌐" };
+const PERIOD_LABEL = { Daily:"Daily", Weekly:"Weekly", Monthly:"Monthly", Yearly:"Yearly", PreEarnings:"Pre-Earnings", EarningsDay:"Earnings Day", PostEarnings:"Post-Earnings", NonEarnings:"Non-Earnings" };
+
+// Per-ICP overrides for period labels — used so Sellside reads "Earnings (live)"
+// per the PRD while IR/Buyside continue to read "Earnings Day".
+const PERIOD_LABEL_BY_ICP = {
+  Sellside: { EarningsDay: "Earnings (live)" },
+};
+const periodLabel = (icp, p) => (PERIOD_LABEL_BY_ICP[icp]?.[p]) ?? PERIOD_LABEL[p] ?? p;
 
 // ─── Workflow Data ─────────────────────────────────────────────────────────────
 const WORKFLOWS = {
@@ -696,286 +712,229 @@ const WORKFLOWS = {
   },
 
   Sellside: {
+    // Daily — non-earnings rhythms. The ~80% of working days that aren't a
+    // print. Earnings-day work lives under Earnings (live). Sell-side analysts
+    // typically arrive ~7 AM, scan overnight news, contribute to the morning
+    // research call, take corporate-access / NDR calls through the day, and
+    // pump out modeling, primers, and theme work between client touchpoints.
     Daily: {
-      tagline: "Be the first call — before the market opens and after the close",
-      goals: ["Pre-market intelligence", "Client value delivery", "Coverage excellence"],
+      tagline: "The non-earnings day — be useful to clients before the open and after the close",
+      goals: ["Pre-market intelligence", "Sales & client mind-share", "Coverage maintenance"],
       steps: [
-        { id:"sell-d1", time:"5–7 AM", icon:"⚡",
-          title:"Pre-Market Earnings & News Sweep",
-          summary:"Process overnight earnings, press releases, and filings from covered and adjacent companies; draft the morning note before clients are at their desks",
-          tasks:["Covered company earnings results & press releases","Adjacent sector announcements","Pre-market price action","Draft morning note bullets"],
-          quartr:true, features:[QF.SUMMARY,QF.PRESS,QF.NAV,QF.LIVE,QF.WATCHLIST,QF.AI],
-          pain:"Processing overnight earnings, press releases, and filing changes and drafting a sharp morning note before 7 AM requires a research infrastructure most analysts don't have.",
-          value:"Event Summaries process each earnings result the moment it drops. Press releases now sit alongside transcripts and slides in one unified event view — no switching between sources. Structured output ready to build your morning note from before the market opens.",
-          impact:"critical" },
-        { id:"sell-d2", time:"7–9 AM", icon:"📝",
-          title:"Morning Note & Client Briefing",
-          summary:"Publish morning note, brief sales team, field early client calls on key developments",
-          tasks:["Morning note publication","Sales team briefing","Key client calls","Price target flag review"],
-          quartr:false },
-        { id:"sell-d3", time:"9:30 AM–1 PM", icon:"📡",
-          title:"Live Earnings Call Coverage",
-          summary:"Cover live calls from companies in and adjacent to your sector; extract quotes, KPIs, and guidance changes instantly",
-          tasks:["Live call attendance","Real-time AI Chat on live transcript","KPI & guidance extraction","Q&A monitoring for key signals","Flash note drafting during the call"],
-          quartr:true, features:[QF.LIVE,QF.LIVE_AI,QF.SPLIT,QF.PRESS,QF.NAV,QF.CHAPTERS,QF.AI],
-          pain:"Following the live call, reading the press release, extracting key quotes for the flash note, and tracking management tone simultaneously is a 3-person job with traditional tools.",
-          value:"AI Chat on Live Events lets you query the live transcript as management speaks — 'What did the CFO just say about margins?' — while you're drafting. Split-View and the new unified Event Navigation keep the live transcript, press release, and slides in one workspace. Flash note is half-written before the Q&A ends.",
-          impact:"critical" },
-        { id:"sell-d4", time:"1–4 PM", icon:"📊",
-          title:"Post-Earnings Analysis & Note Publishing",
-          summary:"Deep-dive into results, update estimates, write the full research note, and distribute to clients",
-          tasks:["Actuals vs. preview comparison","Press release vs. transcript cross-check","Estimate revision","Research note drafting","Client distribution"],
-          quartr:true, features:[QF.UPLOAD,QF.AI,QF.PRESS,QF.NAV,QF.SEARCH,QF.TEMPLATE],
-          pain:"Comparing actual results to your earnings preview line-by-line and publishing a quality note — all within 2 hours of the call — is an extreme time pressure.",
-          value:"Upload your earnings preview to AI Chat: it identifies every line where actuals deviated, with transcript citations. Press releases are now unified with transcripts and slides in one view — no context switching. Prompt Templates standardise your post-earnings note structure so depth doesn't get sacrificed for speed.",
-          impact:"critical" },
+        { id:"sell-d1", time:"6–7:30 AM", icon:"⚡",
+          title:"Pre-Market Sweep",
+          summary:"Process overnight headlines, peer filings, and any after-hours releases across the covered universe before the market opens",
+          tasks:["Overnight headlines & 8-K scan","Adjacent-sector announcements","Pre-market price action","'Mentioned By' feed across covered names"],
+          quartr:true, features:[QF.WATCHLIST,QF.MENTION,QF.PRESS,QF.SUMMARY],
+          pain:"Catching every overnight filing, mention, and after-hours release across 15–25 covered names — without missing the one that will define a client conversation today — is the part of the morning that doesn't scale.",
+          value:"Watchlists surface every event, press release, and filing for your coverage overnight. The Mentioned By feed catches every company that referenced one of yours. Event Summaries digest the after-hours prints in seconds — all before you sit down for the morning call.",
+          impact:"high" },
+        { id:"sell-d2", time:"7:30–8:30 AM", icon:"📣",
+          title:"Morning Research Call & Sales Brief",
+          summary:"Pitch any high-impact research to the sales team and lock in the day's top talking points so sales can carry them to clients",
+          tasks:["Pitch upgrades / downgrades / theme calls","Sharpen the morning email blast","Brief sales on overnight events","Flag the day's top client questions"],
+          quartr:true, features:[QF.AI,QF.SEARCH,QF.TEMPLATE],
+          pain:"The morning blast goes out before 8 AM. Building a sharp, defensible pitch with the right management quote and prior-quarter context — every single morning — is a treadmill that punishes the team that's slowest.",
+          value:"AI Chat with Prompt Templates drafts the morning blast structure off your prior call notes. Global Transcript Search surfaces the exact management quote you need. Sales gets a tighter brief; clients get a sharper email.",
+          impact:"high" },
+        { id:"sell-d3", time:"9 AM–12 PM", icon:"📞",
+          title:"Client Calls & Corporate Access",
+          summary:"Handle inbound from PMs and analysts, run management access calls / non-deal roadshows, and own the moments where the relationship lives",
+          tasks:["PM / analyst inbound calls","Management one-on-ones (NDRs)","Bespoke client follow-ups","Channel-check sourcing"],
+          quartr:true, features:[QF.SEARCH,QF.CHAPTERS,QF.AI,QF.HISTORY],
+          pain:"A PM calls and asks 'what did the CFO actually say about pricing two quarters ago?' — and you have ninety seconds to find it before the call moves on. Same problem before every NDR: pulling the precise prior-call context for the meeting brief.",
+          value:"Global Transcript Search surfaces the exact quote in seconds. Transcript Chapters jump straight to the relevant section. AI Chat builds a one-page NDR brief from the last four calls so management meetings start from informed questions, not throat-clearing.",
+          impact:"high" },
+        { id:"sell-d4", time:"12–4 PM", icon:"📊",
+          title:"Modeling, Primers & Theme Work",
+          summary:"The deep-work block — model maintenance, sector primers, theme research, and the differentiated content clients pay for",
+          tasks:["Model & estimate maintenance","Sector primer drafting","Cross-company theme research","Keyword alert digest review"],
+          quartr:true, features:[QF.SEARCH,QF.AI,QF.KEYWORD,QF.HISTORY,QF.MCP],
+          pain:"A primer or a theme note is only as good as the source material under it. Reading the relevant chunks of 10+ transcripts to find the three quotes that matter is what burns the afternoon.",
+          value:"Keyword Alerts have already flagged the cross-company language you need. AI Chat extracts the exact passages with citations. History Mode shows where management's framing has shifted — the unlock for any narrative-drift theme. Claude MCP runs the synthesis inside your own AI environment so the deliverable lands faster.",
+          impact:"high" },
         { id:"sell-d5", time:"4–6 PM", icon:"📋",
-          title:"Client Follow-Up & Model Maintenance",
-          summary:"Field post-close client questions, update financial model, flag estimate changes to sales team",
-          tasks:["Client Q&A calls","Financial model updates","Estimate revision flagging","Tomorrow's priorities"],
+          title:"End-of-Day Wrap & Tomorrow's Setup",
+          summary:"Field after-close client questions, file the day's notes, and queue tomorrow's priorities so the morning call writes itself",
+          tasks:["After-close client Q&A","Note filing & bookmarks","After-hours release watch","Tomorrow's priority list"],
           quartr:false },
       ],
     },
-    Weekly: {
-      tagline: "Build differentiated views and deliver them to clients before consensus catches up",
-      goals: ["Differentiated research", "Coverage management", "Client value"],
-      steps: [
-        { id:"sell-w1", time:"Monday", icon:"📅",
-          title:"Coverage Calendar & Priority Setting",
-          summary:"Review the week's events across covered universe, assign research priorities, brief the sales team",
-          tasks:["Earnings calendar review","Research priority alignment","Sales team briefing","Upcoming event prep list"],
-          quartr:false },
-        { id:"sell-w2", time:"Tue–Thu", icon:"📡",
-          title:"Earnings Season Coverage Sprint",
-          summary:"Cover multiple earnings calls across your sector; turn around quality research quickly and consistently",
-          tasks:["Multi-company live call coverage with real-time AI","Flash note publication","Full note drafting","Estimate revision across universe"],
-          quartr:true, features:[QF.LIVE,QF.LIVE_AI,QF.SUMMARY,QF.SPLIT,QF.PRESS,QF.NAV,QF.TEMPLATE,QF.UPLOAD],
-          pain:"Covering 5–10 earnings in a single week while maintaining quality across flash notes, full notes, and estimate revisions is an almost impossible sprint.",
-          value:"AI Chat on Live Events means flash note bullets are drafted while the call is still running. Event Summaries, Split-View with unified press release access, and standardised Prompt Templates turn a 3-hour post-earnings workflow into 45 minutes — without sacrificing depth.",
-          impact:"critical" },
-        { id:"sell-w3", time:"Wednesday", icon:"🔍",
-          title:"Sector Thematic Research",
-          summary:"Identify sector-wide themes emerging from earnings transcripts; build the differentiated view clients pay for",
-          tasks:["Keyword alert digest review","Cross-company transcript theme extraction","Consensus vs. reality gap analysis","Thematic note drafting","Client call on key themes"],
-          quartr:true, features:[QF.SEARCH,QF.AI,QF.KEYWORD,QF.CHAPTERS,QF.MCP],
-          pain:"Identifying a sector theme before consensus requires reading dozens of transcripts for a signal that might appear in just a few sentences across many companies.",
-          value:"Keyword Alerts surface exact quotes across 14,000+ companies the moment a theme emerges in any earnings call. AI Chat synthesises cross-company patterns into a thematic brief. Claude MCP lets you turn the week's alert hits into a structured thematic digest inside your own AI environment — before the rest of the Street has read the transcripts.",
-          impact:"high" },
-        { id:"sell-w-intel", time:"Ongoing", icon:"⚙️",
-          title:"Automated Coverage Intelligence Pipeline",
-          summary:"Passive keyword monitoring across the full covered universe and adjacent sectors — running continuously so you catch signals the moment they enter the public domain",
-          tasks:["Keyword alert configuration by sector theme","Risk term alerts (impairment, restatement, SEC inquiry)","Capital allocation signal tracking","Competitor & customer mention monitoring","Weekly digest via Claude MCP"],
-          quartr:true, features:[QF.KEYWORD,QF.MENTION,QF.WATCHLIST,QF.MCP],
-          pain:"The most valuable signals — a company in your supply chain flagging demand weakness, a competitor announcing a surprise buyback, a management team using 'restatement' for the first time — are buried in calls you didn't cover. By the time the sellside note lands, the edge is gone.",
-          value:"Configure Keyword Alerts for your sector's critical terms and risk signals. Quartr monitors every public earnings call and event across 14,000+ companies and delivers alerts straight from the source — before the sellside note exists. Pair with Claude MCP to automatically synthesise the week's signals into a structured intelligence digest. This is the differentiated view clients pay for, built passively.",
-          impact:"high" },
-        { id:"sell-w4", time:"Thursday", icon:"📊",
-          title:"Model & Estimate Revision Cycle",
-          summary:"Update financial models across covered universe based on earnings; revise estimates and flag price target changes",
-          tasks:["KPI extraction from transcripts","Estimate revision across universe","Price target review","Rating change assessment"],
-          quartr:true, features:[QF.AI,QF.SEARCH,QF.HISTORY],
-          pain:"Extracting the exact KPIs and management comments needed for model updates from dense transcripts — across 10+ companies — is a half-day exercise.",
-          value:"AI Chat extracts any KPI or guidance change from any transcript on demand. History Mode flags where a KPI definition has changed — which breaks models silently.",
-          impact:"high" },
-        { id:"sell-w5", time:"Friday", icon:"🎯",
-          title:"Client Call & Week Wrap",
-          summary:"Synthesise the week's findings for top clients; identify what you got wrong and how your thesis has evolved",
-          tasks:["Top client debrief calls","Thesis evolution review","Differentiated view identification","Next week's research priorities"],
-          quartr:false },
-      ],
-    },
-    Monthly: {
-      tagline: "Build conviction, initiate coverage, and create content clients can't get elsewhere",
-      goals: ["Coverage initiation", "Differentiated research", "Client education"],
-      steps: [
-        { id:"sell-m1", time:"Week 1", icon:"📋",
-          title:"Coverage Universe Review",
-          summary:"Monthly review of the full covered universe — ratings at risk, story drift, what needs a re-read",
-          tasks:["Full universe earnings review","Narrative drift detection","Consensus gap analysis","Rating risk assessment"],
-          quartr:true, features:[QF.HISTORY,QF.AI,QF.KEYWORD,QF.MCP],
-          pain:"A monthly universe review requires re-reading recent transcripts for 15–20+ companies — a task that rarely happens because there isn't enough time. Rating changes are triggered by narrative drift that was visible in the transcripts quarters earlier.",
-          value:"AI Chat generates a structured company update — management tone, KPI trends, narrative shifts — for each covered name in minutes. History Mode flags where the story has changed. Use Claude MCP to run the full universe review automatically and surface the names with the most significant drift since last quarter.",
-          impact:"high" },
-        { id:"sell-m2", time:"Week 2", icon:"📝",
-          title:"Coverage Initiation Deep-Dive",
-          summary:"Comprehensive research on a new coverage initiation — full transcript and filing history to build conviction",
-          tasks:["Multi-year transcript deep-read","Annual report & filing analysis","Competitor positioning analysis","Financial model construction"],
-          quartr:true, features:[QF.HISTORY,QF.AI,QF.SEARCH,QF.SLIDE,QF.GOVERNANCE],
-          pain:"A proper coverage initiation requires reading years of transcripts, filings, and presentations — a 2–3 week process that drains research resources.",
-          value:"AI Chat compresses 5 years of earnings transcripts into a structured narrative chronology. History Mode maps the evolution of every key metric and management commitment.",
-          impact:"high" },
-        { id:"sell-m3", time:"Wk 2–3", icon:"🌐",
-          title:"Sector Monthly Report",
-          summary:"Monthly sector-wide report synthesising earnings themes, estimate revisions, and the differentiated view",
-          tasks:["Cross-company theme extraction","Sector multiple & valuation analysis","Key quote compilation","Differentiated view articulation"],
-          quartr:true, features:[QF.SEARCH,QF.AI,QF.KEYWORD,QF.BOOKMARK],
-          pain:"Writing a genuinely differentiated monthly sector report requires identifying cross-company patterns that are invisible without reading everything.",
-          value:"AI Chat surfaces cross-sector themes across all transcripts in your covered universe. Bookmarked quotes build your evidence base as you go.",
-          impact:"high" },
-        { id:"sell-m4", time:"Week 3", icon:"📊",
-          title:"Client Education & Thought Leadership",
-          summary:"Deep educational content for clients — 'how to think about X' pieces that build relationships and demonstrate expertise",
-          tasks:["Thematic deep-dive note","Client webinar preparation","Peer benchmarking content","Historical analysis & pattern"],
-          quartr:true, features:[QF.HISTORY,QF.AI,QF.SLIDE,QF.SEARCH],
-          pain:"Producing compelling thought leadership requires synthesising patterns across large amounts of qualitative source material — a week's work without the right tools.",
-          value:"History Mode and Global Transcript Search turn historical pattern analysis from a week's work into hours — 'how 12 companies described margin pressure across 3 cycles'.",
-          impact:"medium" },
-        { id:"sell-m5", time:"Week 4", icon:"📅",
-          title:"Sales Team Enablement & Forward Planning",
-          summary:"Arm the sales team with the month's best ideas; plan the next month's research priorities",
-          tasks:["Sales team research briefing","Client meeting prep support","Next month's earnings calendar","Research pipeline planning"],
-          quartr:false },
-      ],
-    },
-    Yearly: {
-      tagline: "The annual rhythms that define coverage quality and client relationships",
-      goals: ["Earnings season excellence", "Investor Day coverage", "Coverage universe expansion"],
-      steps: [
-        { id:"sell-y1", time:"Q1–Q4 · ×4", icon:"🎤", major:true, isCore:true,
-          title:"Earnings Season (×4/year)",
-          summary:"The defining rhythm of sellside life — covering 15–25 companies across four annual sprints with speed and quality",
-          tasks:["Multi-company live call coverage with real-time AI","Flash note (<30 min)","Full research note drafting","Estimate revision cascade","Client communication & calls"],
-          quartr:true, features:[QF.LIVE,QF.LIVE_AI,QF.SUMMARY,QF.SPLIT,QF.PRESS,QF.NAV,QF.UPLOAD,QF.TEMPLATE,QF.AI],
-          pain:"Analysts who lack efficient tools publish slower, shallower notes — and lose client mind-share to faster competitors.",
-          value:"AI Chat on Live Events means flash note bullets are drafted before the Q&A ends. Press releases, transcripts, and slides unified in one event view via the new navigation. Automatic Event Summary, earnings preview vs. actual comparison, note template — all in one platform. Publish faster with more depth.",
-          impact:"critical" },
-        { id:"sell-y2", time:"Q2–Q3 · May–Sep", icon:"🌟", major:true, isCore:true,
-          title:"Investor Day Season",
-          summary:"The richest content creation event — management strategy deep-dives that inform your multi-year thesis",
-          tasks:["Investor Day coverage (live with AI Chat)","Long-term guidance extraction","Management strategy analysis","Updated financial model","Client webinar on key takeaways"],
-          quartr:true, features:[QF.LIVE,QF.LIVE_AI,QF.SLIDE,QF.NAV,QF.AI,QF.SUMMARY,QF.HISTORY],
-          pain:"Investor Days contain more strategically valuable content than any other event — but they're hours long and the key signals are buried without an efficient system.",
-          value:"Attend live with AI Chat answering questions on the transcript in real time. AI Chat extracts multi-year targets, capital allocation commitments, and strategy shifts from full-day Investor Day transcripts. Compare this year's CMD to prior year using History Mode. Publish a deeper note faster than any competitor.",
-          impact:"critical" },
-        { id:"sell-y3", time:"Q1 · Jan–Mar", icon:"📄", major:true,
-          title:"Annual Report Season & Coverage Initiation",
-          summary:"Annual reports contain the deepest management commentary — a primary source for coverage initiations",
-          tasks:["Annual report deep-read","MD&A & risk factor analysis","Coverage initiation note","Annual outlook report"],
-          quartr:true, features:[QF.GOVERNANCE,QF.AI,QF.HISTORY,QF.UPLOAD],
-          pain:"Annual reports and initiations require reading years of filings. Without efficient tooling, initiations become shallow and coverage spreads thin.",
-          value:"AI Chat processes years of annual reports into a structured historical briefing. History Mode maps how MD&A language and risk disclosures have evolved year-by-year.",
-          impact:"high" },
-        { id:"sell-y4", time:"Q3 · Jul–Sep", icon:"🌍", major:false,
-          title:"Conference Season Coverage",
-          summary:"Bank-hosted conferences with off-schedule management appearances — an under-leveraged research source",
-          tasks:["Conference presentation coverage","Management fireside tracking","Off-script signal extraction","Cross-company conference themes"],
-          quartr:true, features:[QF.LIVE,QF.SEARCH,QF.SUMMARY,QF.MENTION],
-          pain:"Conference presentations often contain the most candid management commentary — but most analysts can only cover a fraction of them.",
-          value:"Quartr Pro captures conference presentations and firesides across 14,000+ companies. Event Summaries let you process every covered company conference appearance.",
-          impact:"medium" },
-        { id:"sell-y5", time:"Q4 · Oct–Dec", icon:"🗓️", major:false,
-          title:"Annual Outlook & Year-Ahead Report",
-          summary:"The flagship year-end publication — sector outlook, top picks, and the differentiated macro thesis for next year",
-          tasks:["Full-year earnings trend analysis","Sector theme synthesis","Top picks selection","Annual outlook note publication"],
-          quartr:true, features:[QF.HISTORY,QF.AI,QF.KEYWORD,QF.SEARCH],
-          pain:"A genuinely differentiated annual outlook requires synthesising patterns across a full year of transcripts — a prohibitive manual task.",
-          value:"History Mode maps every narrative shift across the full year for each covered company. AI Chat synthesises cross-company patterns into the sector themes that will define next year's trades.",
-          impact:"high" },
-      ],
-    },
+
+    // Pre-Earnings — the two weeks before a print. PRD §5.1: Earnings Calendar,
+    // Pre-Quarter Check-in Prep (NEW Question Builder), Earnings Preview
+    // Builder (NEW Preview Workspace), Coverage Pulse, plus the final
+    // estimate-lock window.
     PreEarnings: {
-      tagline: "The two weeks before the call — research, prep, and narrative alignment",
-      goals: ["Script & Q&A preparation", "Peer transcript research", "Materials finalisation"],
+      tagline: "The two weeks before the print — preparation that turns into edge",
+      goals: ["Calendar discipline", "Differentiated previews", "Estimate confidence"],
       steps: [
-        { id:"sell-pre1", time:"T–14", icon:"📊",
-          title:"Coverage Universe Pre-Earnings Sweep",
-          summary:"Review the current narrative and recent filings for every covered company ahead of the reporting cycle",
-          tasks:["Recent transcript & filing review","KPI trend check","Consensus estimate review","Ratings at risk assessment"],
-          quartr:true, features:[QF.HISTORY,QF.AI,QF.KEYWORD,QF.MCP],
-          pain:"A proper pre-earnings sweep across 15–20 covered companies requires re-reading weeks of transcripts — a task that gets compressed or skipped when time is tight.",
-          value:"AI Chat generates a structured pre-earnings briefing for each covered name in minutes — management tone, KPI trends, open questions. Claude MCP lets you run the full sweep automatically before every cycle.",
-          impact:"high" },
-        { id:"sell-pre2", time:"T–10", icon:"🔍",
-          title:"Earnings Preview Note",
-          summary:"Publish your earnings preview — estimates, key questions, and the setup for each covered name",
-          tasks:["Estimate finalisation","Key question identification","Bull / bear scenario framing","Preview note publication","Sales team briefing"],
+        { id:"sell-pre-cal", time:"T–14", icon:"📅",
+          title:"Earnings Calendar",
+          summary:"Know what reports when across coverage and adjacent names — release patterns, time zones, and the order in which the cycle will fall on you",
+          tasks:["Calendar view across coverage","Watchlist filter","Time-zone aware reporting times","Pre-open vs. post-close release tags"],
+          quartr:true, features:[QF.WATCHLIST,QF.SUMMARY,QF.PRESS],
+          pain:"Mapping which 18 companies report which week — and which days have three of them at once — is admin that has to happen but adds zero edge. Miss it and you're behind for the cycle.",
+          value:"The Watchlist gives you a single calendar across coverage and adjacent names with reporting-time and pre-open/post-close tags. Cycle planning takes minutes, not an afternoon.",
+          impact:"medium" },
+        { id:"sell-pre-checkin", time:"T–10", icon:"🤝",
+          title:"Pre-Quarter Check-in Prep",
+          summary:"Build the question list for the pre-quarter check-in call before the company enters its quiet period",
+          tasks:["Prior transcript & callback re-read","AI-suggested check-in questions","Channel-check input pulls","Question list export to call notes"],
           quartr:true, features:[QF.SEARCH,QF.HISTORY,QF.AI,QF.TEMPLATE],
-          pain:"Writing a differentiated earnings preview requires knowing what management said last quarter, what analysts have been pressing on, and how consensus has evolved — all from memory.",
-          value:"Global Transcript Search surfaces what management said on each topic last quarter. History Mode shows how guidance language has evolved. AI Chat drafts the key questions section in minutes.",
+          pain:"The pre-quarter check-in is one of the highest-information moments of the quarter — and the question list is usually thrown together the night before from memory. The questions you don't ask are the ones that show up as surprises three weeks later.",
+          value:"AI Chat reads the last two transcripts, the prior callback, and your channel-check inputs and drafts a structured check-in question set in minutes. History Mode flags every metric where management's language has shifted — the questions that matter most.",
           impact:"high" },
-        { id:"sell-pre3", time:"T–5", icon:"📋",
+        { id:"sell-pre-preview", time:"T–7", icon:"🧮",
+          title:"Earnings Preview Builder",
+          summary:"Reconcile estimates vs. consensus and guidance, lay in peer KPI snapshots, and write the differentiated preview clients will trade off",
+          tasks:["Consensus tracker review","Guidance log reconciliation","Peer KPI snapshots","Estimate vs. consensus gap analysis","Preview note publication"],
+          quartr:true, features:[QF.AI,QF.HISTORY,QF.SEARCH,QF.SLIDE,QF.TEMPLATE],
+          pain:"Writing a differentiated preview means knowing what management said last call, how guidance language has evolved, what peers just printed, and where consensus is wrong — all from memory and a folder of PDFs.",
+          value:"AI Chat compiles the guidance trail and the relevant peer KPIs into a structured preview workspace. History Mode flags every line where guidance language has shifted. Slide Search surfaces the exact bridge slide from last quarter. The preview is built in 30 minutes — and it's better than the rushed version.",
+          impact:"critical" },
+        { id:"sell-pre-pulse", time:"Ongoing", icon:"🔍",
+          title:"Coverage Pulse",
+          summary:"What clients have been asking, what peers are saying, what the alt-data shows — the running context that makes the preview defensible",
+          tasks:["Client-call theme tracking","Peer transcript search","Keyword alert digest","Cross-coverage signal review"],
+          quartr:true, features:[QF.KEYWORD,QF.SEARCH,QF.MENTION,QF.MCP],
+          pain:"The signals that should sharpen your preview — a peer flagging the same demand weakness, a customer mentioning your covered name, a competitor walking back a target — are buried in calls you didn't cover. By the time you find them, the preview is already out.",
+          value:"Keyword Alerts run passively across 14,000+ companies and flag the exact quote the moment it's said. Mentioned By catches every reference to your covered names. Claude MCP synthesises the cycle's signals into a structured pulse digest — your preview lands with cross-coverage evidence consensus doesn't have.",
+          impact:"high" },
+        { id:"sell-pre-lock", time:"T–3", icon:"🔒",
           title:"Model Finalisation & Estimate Lock",
-          summary:"Lock estimates, stress-test the model, and align the sales team before results drop",
-          tasks:["Financial model update","Estimate vs. consensus gap analysis","Sales team alignment","Client pre-call briefings"],
+          summary:"Lock estimates, stress-test the model, and align the sales team in the final 72 hours before results drop",
+          tasks:["Final model update","Estimate vs. consensus reconciliation","Sales team alignment","Client pre-call briefings"],
           quartr:true, features:[QF.AI,QF.HISTORY,QF.SEARCH],
-          pain:"Finalising estimates without a clear view of where management guided and where their language has shifted leads to surprises on earnings day.",
-          value:"AI Chat extracts every guidance comment from the last two calls on demand. History Mode flags where management language has shifted — which is often the best signal for estimate direction.",
+          pain:"Locking estimates without a clean view of where guidance has shifted — and what management has subtly walked back — leads to surprises on the print. The miss is rarely the headline; it's a line nobody flagged.",
+          value:"AI Chat extracts every guidance comment from the last two calls on demand. History Mode flags exactly where management's language has changed — which is usually the best signal for estimate direction.",
           impact:"medium" },
       ],
     },
+
+    // Earnings (live) — PRD §5.2. The print itself. Four moments: Live Print
+    // (NEW First-Look Scaffold), Live Earnings Call, Callback Prep (NEW
+    // Callback Generator), and Read-Through Radar (NEW Read-Through Engine).
     EarningsDay: {
-      tagline: "From press release to flash note — speed and accuracy under pressure",
-      goals: ["Live call coverage", "Flash note publication", "Real-time signal extraction"],
+      tagline: "The print itself — Reg FD compresses every minute. Speed without sacrificing depth.",
+      goals: ["First-look in <15 min", "Live-call signal extraction", "Callback edge", "Read-throughs across coverage"],
       steps: [
-        { id:"sell-ed1", time:"Pre-Market", icon:"⚡",
-          title:"Press Release & Pre-Market Analysis",
-          summary:"The moment results drop — extract the headline numbers, compare to estimates, and set up the call",
-          tasks:["Press release parsing","Actuals vs. estimates comparison","Revenue & margin surprise identification","Pre-market bullet points for sales"],
-          quartr:true, features:[QF.PRESS,QF.NAV,QF.AI,QF.SUMMARY],
-          pain:"The press release drops before the call and clients expect bullets within minutes — but comparing to estimates, extracting surprises, and drafting simultaneously is almost impossible.",
-          value:"Press releases sit alongside prior transcripts and slides in one unified event view. AI Chat extracts the headline surprises and compares to guidance in seconds — pre-market bullets ready before the call starts.",
+        { id:"sell-ed-print", time:"Press Release", icon:"⚡", isCore:true,
+          title:"Live Print — First-Look Scaffold",
+          summary:"Press release just dropped. Reg FD says nothing leaves your desk until you're in print. Every minute to first-look is client mind-share — and the scaffold is what makes 12 minutes possible",
+          tasks:["Real-time press release ingestion","KPI extraction & variance vs. estimates","Pre-populated first-look scaffold","Pull-quotes ready to insert","Sales-desk distribution"],
+          quartr:true, features:[QF.PRESS,QF.NAV,QF.AI,QF.SUMMARY,QF.TEMPLATE],
+          pain:"Reg FD makes the first-look note non-negotiable: until you're in print, you cannot speak to a client about the result. The window between press release and call start is 30–45 minutes. Building a publishable note in that window — with KPI extraction, variance vs. estimates, and the right pull-quotes — is what separates the analysts whose first-looks get read from the ones whose don't.",
+          value:"The press release sits alongside prior transcripts and slides in one unified event view. AI Chat extracts the headline KPIs and computes variance vs. estimates and consensus instantly. Prompt Templates pre-populate a first-look scaffold; pull-quotes drop in cleanly. The first-look ships before the call even starts.",
           impact:"critical" },
-        { id:"sell-ed2", time:"Call Live", icon:"📡",
-          title:"Live Earnings Call Coverage",
-          summary:"Cover the live call — extract KPIs, management tone, guidance changes, and Q&A signals in real time",
-          tasks:["Live call attendance","Real-time AI Chat on live transcript","Guidance extraction","Q&A signal monitoring","Flash note drafting during the call"],
+        { id:"sell-ed-call", time:"Call Live", icon:"📡", isCore:true,
+          title:"Live Earnings Call",
+          summary:"On the call, queued for a question, tracking what management actually said in real time — with peer context one click away",
+          tasks:["Live transcript with chapter markers","Real-time keyword & sentiment flags","Queued-question prompter","Peer-quarter side panel"],
           quartr:true, features:[QF.LIVE,QF.LIVE_AI,QF.SPLIT,QF.CHAPTERS,QF.PRESS,QF.NAV],
-          pain:"Following the live call, cross-referencing the press release, extracting key quotes, and drafting the flash note simultaneously is a 3-person job with traditional tools.",
-          value:"AI Chat on Live Events answers your questions directly on the live transcript as management speaks. Split-View and unified Event Navigation keep the transcript, press release, and slides open together. Flash note is half-written before Q&A ends.",
+          pain:"Following the prepared remarks, scanning Q&A for the signal, holding your queued question in your head, and cross-checking what a peer said last week — at the same time, in real time — is a four-screen problem on traditional tools.",
+          value:"AI Chat on Live Events answers your question on the live transcript as management is still speaking. Split-View pins the press release, slides, and prior-quarter transcript next to the live call. Transcript Chapters flag every shift in topic. Your queued question lands sharper because you actually heard the answer to the previous one.",
           impact:"critical" },
-        { id:"sell-ed3", time:"Post-Call", icon:"📝",
-          title:"Flash Note Publication",
-          summary:"Publish the flash note within 30 minutes of the call ending — first to clients wins",
-          tasks:["Actuals vs. preview comparison","Key quote extraction","Rating/PT change assessment","Flash note publication","Sales team distribution"],
-          quartr:true, features:[QF.UPLOAD,QF.AI,QF.TEMPLATE,QF.SUMMARY],
-          pain:"Comparing actual results to your preview, extracting supporting quotes, and publishing a quality flash note within 30 minutes is an extreme time pressure that most analysts lose to.",
-          value:"Upload your earnings preview to AI Chat — it identifies every deviation from actuals with transcript citations in under a minute. Prompt Templates standardise the flash note structure so nothing gets missed under pressure.",
+        { id:"sell-ed-callback", time:"Post-Call", icon:"🎯", isCore:true,
+          title:"Callback Prep — Callback Generator",
+          summary:"The private Q&A immediately after the public call. Highest information density of the quarter. The question set is what determines what you actually learn",
+          tasks:["Auto-generated callback questions","Live-call gap detection","Modeling-point prompts","Prior-callback theme history"],
+          quartr:true, features:[QF.LIVE_AI,QF.AI,QF.HISTORY,QF.SEARCH],
+          pain:"The callback is one of the most differentiated moments Quartr already serves — and the question set is usually built in the 10 minutes between the public call ending and the callback starting. The questions you skip are the ones that would have told you what's actually going on.",
+          value:"The Callback Generator reads the live call transcript, identifies the modeling and strategy gaps the prepared remarks didn't fill, and drafts a callback question set conditioned on prior-callback themes. You walk into the callback with a structured question list — and walk out with the answers that move the model.",
           impact:"critical" },
-        { id:"sell-ed4", time:"Same Day", icon:"📊",
-          title:"Full Research Note Drafting",
-          summary:"Deep-dive into results, update estimates across the model, and publish the full post-earnings note",
-          tasks:["Full transcript review","Estimate revision","Model update","Full note drafting","Client distribution"],
-          quartr:true, features:[QF.AI,QF.SEARCH,QF.HISTORY,QF.TEMPLATE],
-          pain:"Writing a quality full note on the same day as the call — after already publishing a flash note — requires a level of speed and depth that's nearly impossible without the right workflow.",
-          value:"AI Chat extracts every KPI and guidance change from the transcript on demand. History Mode puts this quarter's results in context against prior quarters instantly. Prompt Templates mean your note structure is already built — you're filling in analysis, not formatting.",
-          impact:"critical" },
+        { id:"sell-ed-readthru", time:"Within Minutes", icon:"🔗", isCore:true,
+          title:"Read-Through Radar",
+          summary:"This print implies something for another name. FedEx → UPS → retailers. The read-through is how a single print becomes coverage-wide insight",
+          tasks:["Auto-detected read-throughs across watchlist","Peer-impact alerts","Supply-chain linkage map","Client read-through note distribution"],
+          quartr:true, features:[QF.WATCHLIST,QF.MENTION,QF.AI,QF.KEYWORD,QF.MCP],
+          pain:"The most valuable post-print insight is the implication for the name you do cover that didn't print today. Spotting it requires reading the transcript of every peer event — which nobody has time to do during earnings season. By the time the read-through hits the wire, the trade is gone.",
+          value:"The Read-Through Engine watches the watchlist for peer prints, auto-detects read-throughs across linked names, and surfaces them as alerts within minutes of the press release. Send a quick client note ahead of the next morning's research call — without waiting for a sales prompt.",
+          impact:"high" },
       ],
     },
+
+    // Post-Earnings — PRD §5.3. After the call: publish the full note, brief
+    // sales for the next morning, wrap the cycle. Plus client follow-up which
+    // straddles publishing and Quarter Wrap.
     PostEarnings: {
-      tagline: "Turn the signal into conviction — follow-up, roadshows, and thesis updates",
-      goals: ["Client follow-up", "Estimate revision", "Thesis stress-testing"],
+      tagline: "Wrap the print — model, note, sales, clients. Then turn it into the next quarter's setup.",
+      goals: ["Note publishing", "Sales enablement", "Cycle synthesis"],
       steps: [
-        { id:"sell-post1", time:"T+1–3", icon:"📞",
+        { id:"sell-post-pub", time:"T+1", icon:"📰",
+          title:"Note Publishing Hub",
+          summary:"Update the model, attach the callback notes, and publish the full post-print note with new estimates, rating, and price target",
+          tasks:["Model snapshot vs. prior","Transcript pull-quote attach","Callback notes attach","Version history","Full note distribution"],
+          quartr:true, features:[QF.AI,QF.HISTORY,QF.UPLOAD,QF.SEARCH,QF.TEMPLATE],
+          pain:"The full note is what the client actually trades off. Building it the day after the print — model snapshot, every supporting quote, the callback context, the estimate cascade — under sales-desk pressure to move on to the next reporter is where depth gets sacrificed.",
+          value:"AI Chat extracts every KPI and guidance change from the transcript on demand. Upload your prior-quarter model and the new actuals get surfaced line-by-line with citations. Prompt Templates standardise the note structure so depth survives the speed.",
+          impact:"critical" },
+        { id:"sell-post-brief", time:"Next Morning", icon:"📣",
+          title:"Morning Call Brief",
+          summary:"Arm the sales desk for tomorrow's research call: 60-second brief, top three takeaways, the questions sales will get, and the peer reads",
+          tasks:["60-second auto-brief","Top-3 takeaways","Top-3 client questions sales will field","Peer reads","Distribution to sales"],
+          quartr:true, features:[QF.AI,QF.SUMMARY,QF.TEMPLATE,QF.MCP],
+          pain:"Sales hits the morning call with eight reporters' notes in front of them. The note that gets pitched is the one with the cleanest 60-second brief — not the deepest analysis. Building that brief, after the full note, is admin nobody wants but everybody needs.",
+          value:"AI Chat compresses your full note into a 60-second brief with top-three takeaways and the three questions sales will field — formatted for the morning call. Claude MCP can run the same compression across every covered name's note in one pass.",
+          impact:"high" },
+        { id:"sell-post-followup", time:"T+1–3", icon:"📞",
           title:"Client Follow-Up & Management Access",
-          summary:"Field client questions, facilitate management access calls, and deliver the nuanced view that goes beyond the published note",
+          summary:"Field the client questions that go beyond the published note and facilitate management access calls in the days after the print",
           tasks:["Client Q&A calls","Management access facilitation","Key investor briefings","Consensus implication discussion"],
           quartr:true, features:[QF.AI,QF.CHAPTERS,QF.SEARCH],
-          pain:"Clients ask follow-up questions that go deeper than what's in the note — and the answers require pulling exact quotes and context from the transcript quickly.",
-          value:"AI Chat surfaces any transcript quote or management comment on demand during live client calls. Transcript Chapters let you jump to the exact section instantly without searching.",
+          pain:"Clients ask follow-ups that go deeper than the note — and the answer requires pulling exact quotes and context from the transcript while the client is still on the line.",
+          value:"AI Chat surfaces any transcript quote or management comment on demand. Transcript Chapters jump to the exact section instantly. The follow-up call is sharper than the note.",
           impact:"high" },
-        { id:"sell-post2", time:"T+3–7", icon:"📊",
-          title:"Estimate Revision & Model Update",
-          summary:"Update the full financial model across the covered universe based on the new guidance and management commentary",
-          tasks:["Guidance extraction & modelling","Estimate revision across universe","Price target reassessment","Rating change review"],
-          quartr:true, features:[QF.AI,QF.HISTORY,QF.SEARCH,QF.MCP],
-          pain:"Extracting the exact guidance comments, KPI changes, and management caveats needed for model updates across 15–20 companies is a half-week exercise.",
-          value:"AI Chat extracts any guidance figure or management qualifier on demand. History Mode flags where a KPI definition has changed — which silently breaks models. Claude MCP automates guidance extraction across your full universe.",
+        { id:"sell-post-wrap", time:"End of Cycle", icon:"📦",
+          title:"Quarter Wrap",
+          summary:"End-of-cycle recap of the coverage: what beat, what missed, the themes that emerged, and the names reporting next week",
+          tasks:["Coverage scorecard (beat/miss/in-line)","Cross-company thematic recap","Differentiated view articulation","Next-week preview list"],
+          quartr:true, features:[QF.HISTORY,QF.SEARCH,QF.KEYWORD,QF.AI,QF.MCP],
+          pain:"The cycle wrap is the most valuable client-facing content of the quarter — and the hardest to write fast. Synthesising the cross-company patterns from 20 prints, while the next cycle is already starting, is what gets cut.",
+          value:"Keyword Alerts have been flagging cross-company patterns all cycle. AI Chat synthesises them into a thematic recap. History Mode contextualises every print against prior quarters. Claude MCP turns the cycle's signals into a structured wrap automatically — the differentiated view consensus doesn't have.",
+          impact:"critical" },
+      ],
+    },
+
+    // Non-Earnings — PRD §5.4. The space between earnings waves where today's
+    // app under-serves and retention risk peaks. Investor Days, Conferences,
+    // Initiations (NEW Initiation Workspace), Coverage Intelligence (NEW
+    // Coverage Intelligence Pipeline).
+    NonEarnings: {
+      tagline: "Between earnings waves — investor days, conferences, initiations, and always-on coverage",
+      goals: ["Event coverage", "New-company speed", "Always-on signal"],
+      steps: [
+        { id:"sell-non-id", time:"May–Sep", icon:"🌟", isCore:true,
+          title:"Investor Days",
+          summary:"Multi-hour management deep-dives, often with new long-term targets — the richest content event of the year for any covered name",
+          tasks:["Event registration & live coverage","Slide deck ingestion","Long-term target vs. prior","Summary generation","Client webinar prep"],
+          quartr:true, features:[QF.LIVE,QF.LIVE_AI,QF.SLIDE,QF.NAV,QF.SUMMARY,QF.HISTORY],
+          pain:"Investor Days contain more strategically valuable content than any other event — but they're hours long, and the key signals are buried. Without the right tools, the post-event note is a slide-by-slide recap rather than the strategic re-think it should be.",
+          value:"Attend live with AI Chat answering questions on the transcript in real time. Slide Search surfaces the exact bridge from last year's CMD. History Mode compares this year's long-term targets to the prior set, line by line. Publish a deeper note faster than any competitor.",
+          impact:"critical" },
+        { id:"sell-non-conf", time:"Q3 / Q4", icon:"🎤",
+          title:"Conferences",
+          summary:"Bank-hosted conferences with off-schedule management appearances — vetted question lists for fireside chats and group meetings",
+          tasks:["Conference calendar","Per-meeting question generator","Prior fireside-chat archive","Cross-company conference theme tracking"],
+          quartr:true, features:[QF.LIVE,QF.SEARCH,QF.SUMMARY,QF.MENTION,QF.AI],
+          pain:"Conference presentations often contain the most candid management commentary — but most analysts can only cover a fraction of them, and the question list for each meeting gets thrown together in the elevator.",
+          value:"Quartr captures conference presentations and firesides across 14,000+ companies. AI Chat builds a vetted question list per meeting from the prior fireside-chat archive. Event Summaries process every covered-company appearance you couldn't attend.",
           impact:"high" },
-        { id:"sell-post3", time:"T+5–10", icon:"🔍",
-          title:"Sector Theme Synthesis",
-          summary:"Synthesise cross-company patterns from the earnings cycle — find the themes that will define the next quarter before consensus catches up",
-          tasks:["Cross-company theme extraction","Consensus vs. reality gap analysis","Thematic note drafting","Client call on key sector themes"],
-          quartr:true, features:[QF.KEYWORD,QF.SEARCH,QF.AI,QF.MCP],
-          pain:"The most valuable research is the cross-company theme that nobody else has published yet — but identifying it requires reading dozens of transcripts for a signal in a few sentences.",
-          value:"Keyword Alerts have been running all cycle — the cross-company patterns are already flagged. AI Chat synthesises them into a thematic brief. Claude MCP turns the week's signals into a structured sector note automatically. This is the differentiated view clients pay for.",
-          impact:"high" },
-        { id:"sell-post4", time:"T+7–14", icon:"🎯",
-          title:"Conviction Update & Thesis Reset",
-          summary:"Review every covered position post-earnings — update conviction ratings, flag thesis changes, and identify the most important setups going into next quarter",
-          tasks:["Conviction rating review","Thesis change identification","Next quarter setup","Top ideas update for sales"],
-          quartr:true, features:[QF.HISTORY,QF.AI,QF.BOOKMARK],
-          pain:"Updating conviction across a 20-name universe post-earnings requires holding all the new information in context against the prior thesis — almost impossible without a structured workflow.",
-          value:"History Mode puts this quarter's results in the full narrative context of the prior 6–8 quarters. Bookmarked quotes from the cycle build the evidence base. AI Chat identifies where the thesis has confirmed or broken down.",
+        { id:"sell-non-init", time:"Quiet Periods", icon:"🆕", isCore:true,
+          title:"Initiations — Initiation Workspace",
+          summary:"Learning a new company quickly to publish initiation of coverage. The workspace pre-loads filings, transcript history, peer set, and KPI scaffolding",
+          tasks:["Multi-year transcript deep-read","Filings & governance pull","Peer-set scaffolding","KPI history extraction","Banking quiet-period flag","Initiation note drafting"],
+          quartr:true, features:[QF.HISTORY,QF.AI,QF.SEARCH,QF.SLIDE,QF.GOVERNANCE,QF.UPLOAD],
+          pain:"A proper initiation requires reading years of transcripts, filings, and presentations — a 2–3 week process that drains research resources. Initiations done shallow are initiations that don't move the stock.",
+          value:"The Initiation Workspace pre-loads filings, transcript history, peer set, and KPI scaffolding the moment you target a new name. AI Chat compresses 5 years of transcripts into a structured narrative chronology. History Mode maps the evolution of every key metric and management commitment. Banking quiet-period flag sits on top so nothing gets published it shouldn't.",
+          impact:"critical" },
+        { id:"sell-non-intel", time:"Always-On", icon:"⚙️", isCore:true,
+          title:"Coverage Intelligence",
+          summary:"Passive monitoring of coverage names between events — filings, management changes, peer events, theme tracking, all delivered as alerts",
+          tasks:["Filing alerts","Management-change alerts","Peer-event alerts","Theme tracking","Weekly intelligence digest via MCP"],
+          quartr:true, features:[QF.KEYWORD,QF.MENTION,QF.WATCHLIST,QF.MCP],
+          pain:"The most valuable signals between earnings — a company in your supply chain flagging demand weakness, a competitor announcing a surprise buyback, a management team using 'restatement' for the first time — are buried in events you didn't attend. By the time the rival sellside note lands, the edge is gone. This gap is where Quartr's daily-use case has historically been weakest, and where retention risk peaks.",
+          value:"Configure Keyword Alerts for your sector's critical terms and risk signals. Quartr monitors every public earnings call and event across 14,000+ companies and delivers alerts straight from the source. Claude MCP automatically synthesises the week's signals into a structured intelligence digest. The differentiated view clients pay for — built passively, between earnings.",
           impact:"high" },
       ],
     },
@@ -1003,13 +962,11 @@ const PLAYBOOKS = {
     PostEarnings:{ pitch:"'Where do you lose the most time after earnings?' The answer is always consensus interrogation. Demo Upload + AI Chat on a sellside note — divergences from the transcript with citations, in under a minute.", top:["buy-post1","buy-post2"] },
   },
   Sellside: {
-    Daily:       { pitch:"The flash note time pressure is visceral for every equity analyst. 'How long does it take you to publish your post-earnings flash note?' Demo AI Chat on Live Events — flash note half-written before Q&A ends.", top:["sell-d3","sell-d4"] },
-    Weekly:      { pitch:"The Automated Coverage Intelligence Pipeline is the differentiation story. Ask: 'How do you currently find signals in companies you don't actively cover?' Then show keyword alerts delivering signals straight from the source.", top:["sell-w-intel","sell-w2"] },
-    Monthly:     { pitch:"Coverage initiation is the most painful work in sellside. 'How long does a new initiation take your team?' The AI-powered history deep-dive is a jaw-dropper. Layer in MCP for automated universe reviews.", top:["sell-m2","sell-m1"] },
-    Yearly:      { pitch:"Investor Day notes are where sellside differentiation lives. Show AI Chat answering live questions at an Investor Day. That's the moment.", top:["sell-y1","sell-y2"] },
-    PreEarnings: { pitch:"Ask: 'How does your earnings preview get built?' Then show AI Chat pulling every relevant management quote and guidance figure from the last two calls — preview built in 20 minutes instead of a day.", top:["sell-pre1","sell-pre2"] },
-    EarningsDay: { pitch:"Every second between call end and flash note publication is client mind-share lost. Demo the full earnings day workflow: press release in unified view, AI Chat on live transcript, flash note template — publish in under 30 minutes.", top:["sell-ed2","sell-ed3"] },
-    PostEarnings:{ pitch:"The sector theme note is the most valuable post-earnings content — and the hardest to write fast. Show Keyword Alerts + AI Chat synthesising cross-company patterns from the cycle into a thematic brief automatically.", top:["sell-post2","sell-post3"] },
+    Daily:       { pitch:"The morning research call and the email blast are the daily moment of truth. Ask: 'How does the morning blast get written?' Demo AI Chat with Prompt Templates building it from prior call notes, plus a Mentioned By feed that catches every overnight reference to your covered names.", top:["sell-d2","sell-d4"] },
+    PreEarnings: { pitch:"The pre-quarter check-in and the preview are where the cycle is won. Ask: 'How does your earnings preview get built?' Then show AI Chat assembling the guidance trail, peer KPIs, and shifted-language flags into a structured Preview Workspace in 30 minutes.", top:["sell-pre-preview","sell-pre-checkin"] },
+    EarningsDay: { pitch:"Reg FD makes the first-look non-negotiable. Demo the First-Look Scaffold — press release ingestion, KPI variance, scaffold ready in under 12 minutes. Then layer in the Callback Generator: question set built from the gaps in the public call.", top:["sell-ed-print","sell-ed-callback"] },
+    PostEarnings:{ pitch:"The full note and the morning brief are different deliverables for different audiences. Demo the Note Publishing Hub for the trade-able note, then the Morning Call Brief — same content, compressed for sales — and watch the lightbulb come on for any director of research.", top:["sell-post-pub","sell-post-wrap"] },
+    NonEarnings: { pitch:"Non-earnings DAU is the retention gap. Lead with the Coverage Intelligence pipeline — passive Keyword Alerts across 14,000+ companies — then show the Initiation Workspace pre-loading filings and peer set the moment a new name is targeted. This is where seats get retained between cycles.", top:["sell-non-intel","sell-non-init"] },
   },
 };
 
@@ -1170,7 +1127,7 @@ function SalesPlaybook({ icp, period, accent }) {
       <div style={{ display:"flex", alignItems:"center", gap:"8px", marginBottom:"5px" }}>
         <QuartrMark size={14} />
         <h3 style={{ margin:0, fontSize:"13px", fontWeight:"700", color:Q.text, letterSpacing:"-0.2px", fontFamily:FONT }}>
-          Sales Playbook — {ICPS[icp].label} / {PERIOD_LABEL[period] ?? period}
+          Sales Playbook — {ICPS[icp].label} / {periodLabel(icp, period)}
         </h3>
       </div>
       <p style={{ margin:"0 0 16px 0", fontSize:"13px", color:Q.textSubtle, lineHeight:"1.65", fontFamily:FONT, fontStyle:"italic" }}>
@@ -1202,11 +1159,44 @@ export default function WorkflowMap() {
   const [qOnly,  setQOnly]  = useState(false);
 
   const icpMeta  = ICPS[icp];
-  const workflow = WORKFLOWS[icp][period];
+  const periods  = icpMeta.periods;
+
+  // If the selected period isn't available for the current ICP (e.g. the user
+  // was on Sellside / NonEarnings and just switched to IR which doesn't have
+  // it), fall back to the first period this ICP exposes. This keeps the render
+  // pure — no effect / no flash of broken state.
+  const safePeriod = periods.includes(period) ? period : periods[0];
+  const workflow = WORKFLOWS[icp][safePeriod];
   const steps    = qOnly ? workflow.steps.filter(s => s.quartr) : workflow.steps;
 
   const allFeatures = [...new Set(workflow.steps.filter(s=>s.quartr&&s.features).flatMap(s=>s.features))];
   const quartrCount = workflow.steps.filter(s=>s.quartr).length;
+
+  // Switching ICP: also reset the period to that ICP's first period so the
+  // Sellside ↔ IR / Buyside transitions never land on a missing tab.
+  const switchIcp = (key) => {
+    setIcp(key);
+    setPeriod(ICPS[key].periods[0]);
+    setOpenId(null);
+    setQOnly(false);
+  };
+
+  // Arrow-key navigation across the period tablist (left/right cycles within
+  // the current ICP's periods). Home / End jump to first / last. Standard
+  // WAI-ARIA 1.2 tablist pattern.
+  const onPeriodKeyDown = (e) => {
+    const idx = periods.indexOf(safePeriod);
+    if (idx < 0) return;
+    let next = idx;
+    if (e.key === "ArrowRight") next = (idx + 1) % periods.length;
+    else if (e.key === "ArrowLeft") next = (idx - 1 + periods.length) % periods.length;
+    else if (e.key === "Home") next = 0;
+    else if (e.key === "End") next = periods.length - 1;
+    else return;
+    e.preventDefault();
+    setPeriod(periods[next]);
+    setOpenId(null);
+  };
 
   return (
     <div style={{ fontFamily:FONT, background:Q.bg, minHeight:"100vh", color:Q.text }}>
@@ -1227,15 +1217,15 @@ export default function WorkflowMap() {
               Where Quartr Pro<br />
               <span style={{ color:Q.brand }}>creates the most value.</span>
             </h1>
-            <p style={{ margin:0, fontSize:"13px", color:Q.textSubtle, maxWidth:"420px", lineHeight:"1.6", fontFamily:FONT }}>
-              Daily, weekly, monthly &amp; yearly workflows for IR, Buyside, and Sellside teams — with every Quartr Pro touchpoint mapped to the exact pain it solves.
+            <p style={{ margin:0, fontSize:"13px", color:Q.textSubtle, maxWidth:"460px", lineHeight:"1.6", fontFamily:FONT }}>
+              Workflow-aligned views for IR, Buyside, and Sellside teams — every Quartr Pro touchpoint mapped to the exact pain it solves. Sellside follows the four-phase IA from the Sell-Side Navigation PRD.
             </p>
           </div>
 
           {/* Feature digest */}
           <div className="feature-digest" style={{ background:Q.card, border:`1px solid ${Q.border}`, borderRadius:"8px", padding:"14px 16px", minWidth:"185px" }}>
             <p style={{ margin:"0 0 10px 0", fontSize:"10px", color:Q.textMuted, fontWeight:"700", textTransform:"uppercase", letterSpacing:"0.8px", fontFamily:FONT }}>
-              {PERIOD_LABEL[period]} Quartr Features
+              {periodLabel(icp, safePeriod)} Quartr Features
             </p>
             <div style={{ display:"flex", flexDirection:"column", gap:"5px" }}>
               {allFeatures.slice(0,8).map(f => (
@@ -1250,13 +1240,16 @@ export default function WorkflowMap() {
         </div>
 
         {/* ── ICP Tabs ── */}
-        <div className="icp-tabs" style={{ display:"flex", gap:"2px" }}>
+        <div className="icp-tabs" role="tablist" aria-label="Select ICP" style={{ display:"flex", gap:"2px" }}>
           {Object.entries(ICPS).map(([key, meta]) => {
             const active = key === icp;
             const totalQ = Object.values(WORKFLOWS[key]).reduce((a,w)=>a+w.steps.filter(s=>s.quartr).length, 0);
             return (
               <button key={key}
-                onClick={() => { setIcp(key); setOpenId(null); setQOnly(false); }}
+                role="tab"
+                aria-selected={active}
+                aria-controls="icp-panel"
+                onClick={() => switchIcp(key)}
                 style={{
                   background: active ? Q.card : "transparent",
                   border: active ? `1px solid ${Q.border}` : "1px solid transparent",
@@ -1299,13 +1292,24 @@ export default function WorkflowMap() {
             </p>
           </div>
         </div>
-        {/* Period tabs */}
-        <div className="period-tabs" style={{ display:"flex", gap:"4px" }}>
-          {PERIODS.map(p => {
-            const active = p === period;
+        {/* Period tabs — driven by ICPS[icp].periods so Sellside shows the
+            workflow-aligned set (Daily / Pre / Earnings / Post / Non-Earnings)
+            and IR + Buyside keep their time-based set. */}
+        <div
+          className="period-tabs"
+          role="tablist"
+          aria-label="Select workflow period"
+          onKeyDown={onPeriodKeyDown}
+          style={{ display:"flex", gap:"4px" }}
+        >
+          {periods.map(p => {
+            const active = p === safePeriod;
             const qc = WORKFLOWS[icp][p].steps.filter(s=>s.quartr).length;
             return (
               <button key={p}
+                role="tab"
+                aria-selected={active}
+                tabIndex={active ? 0 : -1}
                 onClick={() => { setPeriod(p); setOpenId(null); }}
                 style={{
                   background: active ? icpMeta.dim : "transparent",
@@ -1319,7 +1323,7 @@ export default function WorkflowMap() {
                 }}
               >
                 <span style={{ fontSize:"12px" }}>{PERIOD_ICON[p]}</span>
-                <span>{PERIOD_LABEL[p]}</span>
+                <span>{periodLabel(icp, p)}</span>
                 <span style={{
                   background: active ? `rgba(255,255,255,0.1)` : Q.borderSub,
                   color: active ? icpMeta.accent : Q.textMuted,
@@ -1377,7 +1381,7 @@ export default function WorkflowMap() {
         </div>
 
         {/* Sales Playbook */}
-        <SalesPlaybook icp={icp} period={period} accent={icpMeta.accent} />
+        <SalesPlaybook icp={icp} period={safePeriod} accent={icpMeta.accent} />
 
         {/* Footer */}
         <div style={{ display:"flex", justifyContent:"center", alignItems:"center", gap:"20px", flexWrap:"wrap", marginTop:"24px", paddingTop:"18px", borderTop:`1px solid ${Q.borderSub}` }}>

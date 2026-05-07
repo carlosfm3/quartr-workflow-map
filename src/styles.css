@@ -58,6 +58,13 @@ button:focus-visible,
 }
 
 /* ── Custom scrollbar for the left rail ─────────────────────────────────── */
+/* scrollbar-gutter reserves the 6px gutter regardless of whether content
+   currently overflows. Without this, switching periods can change the rail's
+   total content height, the scrollbar pops in or out, and the rail's contents
+   shift sideways by 6px — visible as a "glitch" on a period click. */
+.qm-rail {
+  scrollbar-gutter: stable;
+}
 .qm-rail::-webkit-scrollbar {
   width: 6px;
 }

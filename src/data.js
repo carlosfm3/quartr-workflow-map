@@ -686,13 +686,22 @@ export const WORKFLOWS = {
           value:"Global Transcript Search surfaces the exact quote in seconds. Transcript Chapters jump straight to the relevant section. AI Chat builds a one-page NDR brief from the last four calls so management meetings start from informed questions, not throat-clearing.",
           impact:"high" },
         { id:"sell-d4", time:"12–4 PM", icon:"📊",
-          title:"Modeling, Primers & Theme Work",
-          summary:"The deep-work block — model maintenance, sector primers, theme research, and the differentiated content clients pay for",
-          tasks:["Model & estimate maintenance","Sector primer drafting","Cross-company theme research","Keyword alert digest review"],
+          title:"Theme Research & Primer Drafting",
+          summary:"The deep-work block — sector primers, theme research, and the differentiated content clients pay for. Pure model maintenance lives in the next step (Quartr does not touch the spreadsheet).",
+          tasks:["Sector primer drafting","Cross-company theme research","Keyword alert digest review","Differentiated-view articulation"],
           quartr:true, features:[QF.SEARCH,QF.AI,QF.KEYWORD,QF.HISTORY,QF.MCP],
           pain:"A primer or a theme note is only as good as the source material under it. Reading the relevant chunks of 10+ transcripts to find the three quotes that matter is what burns the afternoon.",
           value:"Keyword Alerts have already flagged the cross-company language you need. AI Chat extracts the exact passages with citations. History Mode shows where management's framing has shifted — the unlock for any narrative-drift theme. Claude MCP runs the synthesis inside your own AI environment so the deliverable lands faster.",
           impact:"high" },
+        // sell-d-model: pure modeling craft. Excel-only, no transcript work.
+        // Sits in the workflow honestly even though Quartr does not touch it
+        // — the value-prop story is stronger when the map admits where Quartr
+        // doesn't fit than when it pretends to cover the whole day.
+        { id:"sell-d-model", time:"Mid-Afternoon", icon:"🧮",
+          title:"Financial Model Maintenance",
+          summary:"The Excel side of the job — keeping the spreadsheet model honest as new data points come in through the day. Pure modeling craft; no transcript work needed.",
+          tasks:["Estimate roll-forward","Macro / FX / cost input updates","Cross-name scenario tweaks","Unit-economics sanity checks"],
+          quartr:false },
         { id:"sell-d5", time:"4–6 PM", icon:"📋",
           title:"End-of-Day Wrap & Tomorrow's Setup",
           summary:"Field after-close client questions, file the day's notes, and queue tomorrow's priorities so the morning call writes itself",
@@ -725,6 +734,14 @@ export const WORKFLOWS = {
           pain:"The pre-quarter check-in is one of the highest-information moments of the quarter — and the question list is usually thrown together the night before from memory. The questions you don't ask are the ones that show up as surprises three weeks later.",
           value:"AI Chat reads the last two transcripts, the prior callback, and your channel-check inputs and drafts a structured check-in question set in minutes. History Mode flags every metric where management's language has shifted — the questions that matter most.",
           impact:"high" },
+        // sell-pre-channel: phone-and-shoe-leather work. Channel checks and
+        // primary research are where differentiated views actually originate
+        // — Quartr can't sit in on a former-employee call.
+        { id:"sell-pre-channel", time:"T–14 to T–7", icon:"📞",
+          title:"Channel Checks & Primary Research",
+          summary:"Calling distributors, suppliers, customers, and former employees — the field research that backs the differentiated view nothing about the company itself can prove.",
+          tasks:["Distributor & supplier calls","Former-employee interviews","Customer behaviour scuttlebutt","Expert-network calls (GLG / Tegus / Third Bridge)"],
+          quartr:false },
         { id:"sell-pre-preview", time:"T–7", icon:"🧮",
           title:"Differentiated Preview Build",
           summary:"Reconcile estimates vs. consensus and guidance, lay in peer KPI snapshots, and write the differentiated preview clients will trade off",
@@ -767,6 +784,14 @@ export const WORKFLOWS = {
           pain:"Reg FD makes the first-look note non-negotiable: until you're in print, you cannot speak to a client about the result. The window between press release and call start is 30–45 minutes. Building a publishable note in that window — with KPI extraction, variance vs. estimates, and the right pull-quotes — is what separates the analysts whose first-looks get read from the ones whose don't.",
           value:"The press release sits alongside prior transcripts and slides in one unified event view. AI Chat extracts the headline KPIs and computes variance vs. estimates and consensus instantly. Prompt Templates pre-populate a first-look scaffold; pull-quotes drop in cleanly. The first-look ships before the call even starts.",
           impact:"critical" },
+        // sell-ed-compliance: legal/compliance gate before publish. Reg FD
+        // requires it; Quartr doesn't replace it. Sits between the build
+        // (sell-ed-print) and the live call.
+        { id:"sell-ed-compliance", time:"Pre-Publish", icon:"✅",
+          title:"Compliance Review & Reg FD Clearance",
+          summary:"Before the first-look ships: legal / compliance sign-off on rating, price target, and any material non-public flag. The human gate Reg FD requires.",
+          tasks:["Compliance review queue","Legal sign-off on rating / PT changes","Restricted-list check","Banking conflict screen"],
+          quartr:false },
         { id:"sell-ed-call", time:"Call Live", icon:"📡", isCore:true,
           title:"Live Call Tracking & Q&A Capture",
           summary:"On the call, queued for a question, tracking what management actually said in real time — with peer context one click away",
@@ -825,6 +850,15 @@ export const WORKFLOWS = {
           pain:"Clients ask follow-ups that go deeper than the note — and the answer requires pulling exact quotes and context from the transcript while the client is still on the line.",
           value:"AI Chat surfaces any transcript quote or management comment on demand. Transcript Chapters jump to the exact section instantly. The follow-up call is sharper than the note.",
           impact:"high" },
+        // sell-post-rating: the internal sit-down where conviction gets
+        // debated. Director of research, sector head, the analyst —
+        // pure human judgement on whether the print justifies a rating
+        // change. No transcript tool helps here.
+        { id:"sell-post-rating", time:"T+2–5", icon:"⚖️",
+          title:"Rating Committee & Conviction Debate",
+          summary:"The internal sit-down — director of research, sector head, the analyst — to debate whether the print justifies a rating change. The conversation that's nothing but human judgement.",
+          tasks:["Pre-meeting brief preparation","Rating committee presentation","Director of research debate","Sector head sign-off"],
+          quartr:false },
         { id:"sell-post-wrap", time:"End of Cycle", icon:"📦",
           title:"Cycle Theme Synthesis",
           summary:"End-of-cycle recap of the coverage: what beat, what missed, the themes that emerged, and the names reporting next week",
@@ -860,6 +894,14 @@ export const WORKFLOWS = {
           pain:"Conference presentations often contain the most candid management commentary — but most analysts can only cover a fraction of them, and the question list for each meeting gets thrown together in the elevator.",
           value:"Quartr captures conference presentations and firesides across 14,000+ companies. AI Chat builds a vetted question list per meeting from the prior fireside-chat archive. Event Summaries process every covered-company appearance you couldn't attend.",
           impact:"high" },
+        // sell-non-travel: the road work — bank-hosted conferences, NDR
+        // logistics, client dinners. Relationship work that doesn't happen
+        // on a screen, and the part of the calendar Quartr can't replace.
+        { id:"sell-non-travel", time:"Sep–Nov", icon:"✈️",
+          title:"Conference Travel & Client Marketing",
+          summary:"On the road — bank-hosted conferences, NDR scheduling, client dinners. The relationship work that doesn't happen on a screen, and the parts of the calendar Quartr can't replace.",
+          tasks:["Conference travel & logistics","NDR scheduling","Client dinners & marketing trips","Internal team coordination"],
+          quartr:false },
         { id:"sell-non-init", time:"Quiet Periods", icon:"🆕", isCore:true,
           title:"New-Coverage Build",
           summary:"Learning a new company quickly to publish initiation of coverage. The workspace pre-loads filings, transcript history, peer set, and KPI scaffolding",

@@ -337,7 +337,12 @@ function PeriodStrip({ icp, period, periods, onSwitchPeriod, onKeyDown, band }) 
                 color: active ? icpMeta.accent : Q.textSubtle,
                 fontWeight: active ? 600 : 500, fontSize: 12,
                 cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                fontFamily: FONT, transition: "all .12s ease",
+                fontFamily: FONT,
+                // Explicit transition list (no "all"): font-weight 500↔600 is
+                // not interpolatable smoothly and was snapping mid-transition,
+                // causing a visible shimmer when the active tab swapped on a
+                // period click.
+                transition: "background-color .12s ease, color .12s ease, border-color .12s ease",
                 whiteSpace: "nowrap", minHeight: 32,
                 scrollSnapAlign: stack ? "start" : "none",
                 flexShrink: 0,
@@ -835,8 +840,14 @@ export default function WorkflowMap() {
   return (
     <div style={{
       fontFamily: FONT, color: Q.text, minHeight: "100vh",
-      background: `linear-gradient(180deg, ${Q.bgPage} 0%, ${Q.bg} 280px)`,
-      backgroundImage: `linear-gradient(180deg, ${ICP_WASH[icp]} 0%, transparent 600px)`,
+      // Two stacked gradients: ICP wash on top, page-fade beneath. Single
+      // backgroundImage avoids the prior `background` + `backgroundImage`
+      // conflict where the shorthand reset the image then the longhand set
+      // it again — React touched both properties on every render and could
+      // briefly repaint the gradient on innocuous re-renders like a period
+      // switch.
+      backgroundColor: Q.bg,
+      backgroundImage: `linear-gradient(180deg, ${ICP_WASH[icp]} 0%, transparent 600px), linear-gradient(180deg, ${Q.bgPage} 0%, ${Q.bg} 280px)`,
       overflowX: "hidden", maxWidth: "100vw",
     }}>
       <TopBar

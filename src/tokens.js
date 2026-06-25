@@ -18,7 +18,10 @@ export const Q = {
   text:        "#FBFCFC",
   textRead:    "#D2D5D7",
   textSubtle:  "#8F98A1",
-  textMuted:   "#485259",
+  // Bumped from #485259 (~2.8:1 on bg, failed WCAG) to ~5:1 so the small
+  // uppercase labels stay readable on a projector / glare-y conference screen
+  // during a live demo, while still reading as secondary text.
+  textMuted:   "#79838B",
   // Brand
   brand:       "#FF4000",
   brandDim:    "rgba(255,64,0,0.15)",

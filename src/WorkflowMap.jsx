@@ -365,7 +365,7 @@ function PeriodStrip({ icp, period, periods, onSwitchPeriod, onKeyDown, band }) 
 // ── Period intro card ─────────────────────────────────────────────────────
 // Sits at the top of the right pane when no step is selected. Replaces the
 // old "period subheader" + acts as the playbook landing card.
-function PeriodIntro({ icp, period, band }) {
+function PeriodIntro({ icp, period, band, spotlight, onToggleFeature, onSelectStep }) {
   const compact = band === "xs" || band === "sm";
   const heroSize = band === "xl" ? 34 : band === "lg" ? 30 : band === "md" ? 28 : band === "sm" ? 24 : 22;
   const icpMeta = ICPS[icp];
@@ -430,21 +430,30 @@ function PeriodIntro({ icp, period, band }) {
         <div>
           <div style={{ fontSize: 10, fontWeight: 700, color: Q.textMuted, textTransform: "uppercase", letterSpacing: "0.8px", marginBottom: 10, fontFamily: FONT }}>
             Top Quartr features in this period
+            <span style={{ marginLeft: 8, fontWeight: 600, color: Q.textMuted, textTransform: "none", letterSpacing: 0, opacity: 0.8 }}>
+              — click to spotlight the steps that use it
+            </span>
           </div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-            {topFeatures.map(([f, count]) => (
-              <span key={f} style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                background: "rgba(255,64,0,0.08)",
-                border: "1px solid rgba(255,64,0,0.22)",
-                color: Q.brand, padding: "5px 10px", borderRadius: 4,
-                fontSize: 12, fontWeight: 600, fontFamily: FONT,
-              }}>
-                <QuartrMark size={9} />
-                {f}
-                <span style={{ color: Q.textMuted, fontWeight: 600, fontSize: 10 }}>×{count}</span>
-              </span>
-            ))}
+            {topFeatures.map(([f, count]) => {
+              const on = spotlight === f;
+              return (
+                <button key={f} onClick={() => onToggleFeature && onToggleFeature(f)}
+                  aria-pressed={on} title={`Spotlight steps using ${f}`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
+                    background: on ? Q.brand : "rgba(255,64,0,0.08)",
+                    border: `1px solid ${on ? Q.brand : "rgba(255,64,0,0.22)"}`,
+                    color: on ? "#fff" : Q.brand, padding: "5px 10px", borderRadius: 4,
+                    fontSize: 12, fontWeight: 600, fontFamily: FONT,
+                    transition: "background .12s, color .12s, border-color .12s",
+                  }}>
+                  <QuartrMark size={9} color={on ? "#fff" : Q.brand} />
+                  {f}
+                  <span style={{ color: on ? "rgba(255,255,255,0.8)" : Q.textMuted, fontWeight: 600, fontSize: 10 }}>×{count}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -473,15 +482,20 @@ function PeriodIntro({ icp, period, band }) {
                 Lead with →
               </span>
               {topPlaybookSteps.map((s) => (
-                <span key={s.id} style={{
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  background: Q.cardMid, border: `1px solid ${Q.border}`,
-                  borderRadius: 4, padding: "5px 10px",
-                  fontSize: 12, color: Q.textRead, fontFamily: FONT,
-                }}>
+                <button key={s.id} onClick={() => onSelectStep && onSelectStep(s.id)}
+                  title={`Open ${s.title}`}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 6, cursor: "pointer",
+                    background: Q.cardMid, border: `1px solid ${Q.border}`,
+                    borderRadius: 4, padding: "5px 10px",
+                    fontSize: 12, color: Q.textRead, fontFamily: FONT, fontWeight: 500,
+                    transition: "background .12s, border-color .12s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = Q.brandBorder; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = Q.border; }}>
                   <span>{s.icon}</span>
                   <span>{s.title}</span>
-                </span>
+                </button>
               ))}
             </div>
           )}
@@ -496,7 +510,7 @@ function PeriodIntro({ icp, period, band }) {
 }
 
 // ── Step row in the left rail ──────────────────────────────────────────────
-function StepRow({ step, isActive, onSelect, isLast, accent }) {
+function StepRow({ step, isActive, onSelect, isLast, accent, spot, dim }) {
   const isQ = step.quartr;
   // Impact → rail thickness; turns the timeline rail into a visual weight map.
   const railWidth = isQ ? (step.impact === "critical" ? 3 : step.impact === "high" ? 2 : 1) : 1;
@@ -512,6 +526,13 @@ function StepRow({ step, isActive, onSelect, isLast, accent }) {
         cursor: "pointer",
         position: "relative",
         padding: "8px 14px 8px 0",
+        borderRadius: 6,
+        // Feature spotlight: matching steps get an orange ring + wash,
+        // non-matching steps fade back.
+        background: spot ? "rgba(255,64,0,0.07)" : undefined,
+        boxShadow: spot ? `inset 0 0 0 1px ${Q.brandBorder}` : undefined,
+        opacity: dim ? 0.38 : 1,
+        transition: "opacity .15s ease, background .15s ease",
       }}
     >
       {/* Timeline column */}
@@ -572,7 +593,7 @@ function StepRow({ step, isActive, onSelect, isLast, accent }) {
 // On tablets and phones we don't have a vertical rail — the steps render as
 // horizontal chips (phone) or a 2-column grid (tablet). This card is denser
 // than StepRow and stands on its own without a connecting rail line.
-function StepCard({ step, isActive, onSelect, accent, layout }) {
+function StepCard({ step, isActive, onSelect, accent, layout, spot, dim }) {
   const isQ = step.quartr;
   // 'strip' = phone horizontal chip, 'grid' = tablet card.
   const strip = layout === "strip";
@@ -596,7 +617,9 @@ function StepCard({ step, isActive, onSelect, accent, layout }) {
         minWidth: strip ? 180 : 0,
         maxWidth: strip ? 220 : "none",
         flexShrink: 0,
-        transition: "background .12s, border-color .12s",
+        boxShadow: spot ? `inset 0 0 0 1px ${Q.brand}` : undefined,
+        opacity: dim ? 0.4 : 1,
+        transition: "background .12s, border-color .12s, opacity .15s",
       }}>
       <StepDot icon={step.icon} isQuartr={isQ} isActive={isActive} accent={accent} />
       <div style={{ minWidth: 0, flex: 1 }}>
@@ -771,13 +794,43 @@ function DetailPane({ step, accent, band }) {
   );
 }
 
+// ── URL hash state ──────────────────────────────────────────────────────
+// The whole view (icp / period / selected step / Quartr-only toggle) is
+// mirrored into the URL hash so any view is shareable, bookmarkable, and
+// resumable mid-demo — e.g. .../#icp=IR&period=EarningsDay&step=ir-ed1.
+// Everything is validated on read so a stale or hand-edited link degrades
+// gracefully to a sensible default rather than a blank screen.
+function readHash() {
+  const raw = (typeof window !== "undefined" ? window.location.hash : "").replace(/^#/, "");
+  const out = {};
+  raw.split("&").forEach((kv) => {
+    const i = kv.indexOf("=");
+    if (i > 0) out[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1));
+  });
+  return out;
+}
+function resolveView(p) {
+  const icp = ICPS[p.icp] ? p.icp : "IR";
+  const periods = ICPS[icp].periods;
+  const period = periods.includes(p.period) ? p.period : periods[0];
+  const activeId = p.step && findStep(icp, period, p.step) ? p.step : null;
+  return { icp, period, activeId, qOnly: p.q === "1" };
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────
 export default function WorkflowMap() {
-  const [icp, setIcp] = useState("IR");
-  const [period, setPeriod] = useState("Daily");
-  const [activeId, setActiveId] = useState(null);
-  const [qOnly, setQOnly] = useState(false);
+  // Initialise from the URL hash (once) so a shared link lands on the right
+  // view with no flash of the default.
+  const [initial] = useState(() => resolveView(readHash()));
+  const [icp, setIcp] = useState(initial.icp);
+  const [period, setPeriod] = useState(initial.period);
+  const [activeId, setActiveId] = useState(initial.activeId);
+  const [qOnly, setQOnly] = useState(initial.qOnly);
   const [aboutOpen, setAboutOpen] = useState(false);
+  // Feature spotlight: clicking a feature chip highlights every step in the
+  // period that uses it (and dims the rest), turning the map into a
+  // feature-led talk track. null = no spotlight.
+  const [spotlight, setSpotlight] = useState(null);
 
   const icpMeta = ICPS[icp];
   const periods = icpMeta.periods;
@@ -818,11 +871,57 @@ export default function WorkflowMap() {
     setPeriod(ICPS[key].periods[0]);
     setActiveId(null);
     setQOnly(false);
+    setSpotlight(null);
   };
   const switchPeriod = (p) => {
     setPeriod(p);
     setActiveId(null);
+    setSpotlight(null);
   };
+
+  // Keep the URL hash in sync with the current view. replaceState (not push)
+  // so we mirror the view for sharing without flooding browser history on
+  // every step click.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const parts = [`icp=${icp}`, `period=${encodeURIComponent(safePeriod)}`];
+    if (activeId) parts.push(`step=${encodeURIComponent(activeId)}`);
+    if (qOnly) parts.push("q=1");
+    const next = "#" + parts.join("&");
+    if (window.location.hash !== next) window.history.replaceState(null, "", next);
+  }, [icp, safePeriod, activeId, qOnly]);
+
+  // React to an externally-changed hash (pasted link, back/forward).
+  useEffect(() => {
+    const onHash = () => {
+      const v = resolveView(readHash());
+      setIcp(v.icp);
+      setPeriod(v.period);
+      setActiveId(v.activeId);
+      setQOnly(v.qOnly);
+      setSpotlight(null);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
+
+  // Arrow-key navigation through the rail (twoPane only), matching the
+  // keyboard support already on the period tabs.
+  const onStepKeyDown = (e) => {
+    if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(e.key)) return;
+    const ids = visibleSteps.map((s) => s.id);
+    if (ids.length === 0) return;
+    e.preventDefault();
+    let idx = activeId ? ids.indexOf(activeId) : -1;
+    if (e.key === "ArrowDown") idx = idx < 0 ? 0 : Math.min(idx + 1, ids.length - 1);
+    else if (e.key === "ArrowUp") idx = idx < 0 ? ids.length - 1 : Math.max(idx - 1, 0);
+    else if (e.key === "Home") idx = 0;
+    else if (e.key === "End") idx = ids.length - 1;
+    setActiveId(ids[idx]);
+  };
+
+  // Toggle the feature spotlight on/off.
+  const toggleSpotlight = (f) => setSpotlight((cur) => (cur === f ? null : f));
 
   const onPeriodKeyDown = (e) => {
     const idx = periods.indexOf(safePeriod);
@@ -905,7 +1004,9 @@ export default function WorkflowMap() {
         }}>
           {activeStep
             ? <DetailPane step={activeStep} accent={icpMeta.accent} band={band} />
-            : <PeriodIntro icp={icp} period={safePeriod} band={band} />
+            : <PeriodIntro icp={icp} period={safePeriod} band={band}
+                spotlight={spotlight} onToggleFeature={toggleSpotlight}
+                onSelectStep={setActiveId} />
           }
         </section>
 
@@ -932,25 +1033,46 @@ export default function WorkflowMap() {
               {layoutMode === "twoPane" ? "Workflow" : "Steps in this period"}
               {" · "}{visibleSteps.length} {visibleSteps.length === 1 ? "step" : "steps"}
             </div>
-            {activeId && (
-              <button onClick={() => setActiveId(null)} style={{
-                background: "transparent", border: "none", cursor: "pointer",
-                color: Q.textSubtle, fontSize: 11, fontFamily: FONT,
-                padding: "4px 8px", borderRadius: 4, fontWeight: 500,
-              }}>← Overview</button>
-            )}
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              {spotlight && (
+                <button onClick={() => setSpotlight(null)}
+                  title="Clear feature spotlight"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5, cursor: "pointer",
+                    background: Q.brandDim, border: `1px solid ${Q.brandBorder}`,
+                    color: Q.brand, fontSize: 10.5, fontFamily: FONT, fontWeight: 600,
+                    padding: "3px 7px", borderRadius: 4, whiteSpace: "nowrap",
+                  }}>
+                  <QuartrMark size={8} /> {spotlight} ✕
+                </button>
+              )}
+              {activeId && (
+                <button onClick={() => setActiveId(null)} style={{
+                  background: "transparent", border: "none", cursor: "pointer",
+                  color: Q.textSubtle, fontSize: 11, fontFamily: FONT,
+                  padding: "4px 8px", borderRadius: 4, fontWeight: 500,
+                }}>← Overview</button>
+              )}
+            </div>
           </div>
 
           {layoutMode === "twoPane" && (
-            <div>
-              {visibleSteps.map((s, i) => (
-                <StepRow key={s.id} step={s}
-                  isActive={activeId === s.id}
-                  onSelect={() => setActiveId(s.id)}
-                  isLast={i === visibleSteps.length - 1}
-                  accent={icpMeta.accent}
-                />
-              ))}
+            <div role="listbox" tabIndex={0} aria-label="Workflow steps"
+              onKeyDown={onStepKeyDown}
+              style={{ outline: "none" }}>
+              {visibleSteps.map((s, i) => {
+                const hot = spotlight && (s.features || []).includes(spotlight);
+                return (
+                  <StepRow key={s.id} step={s}
+                    isActive={activeId === s.id}
+                    onSelect={() => setActiveId(s.id)}
+                    isLast={i === visibleSteps.length - 1}
+                    accent={icpMeta.accent}
+                    spot={!!hot}
+                    dim={!!spotlight && !hot}
+                  />
+                );
+              })}
             </div>
           )}
 
@@ -960,12 +1082,16 @@ export default function WorkflowMap() {
               gridTemplateColumns: band === "md" ? "repeat(3, 1fr)" : "repeat(2, 1fr)",
               gap: 10,
             }}>
-              {visibleSteps.map((s) => (
-                <StepCard key={s.id} step={s}
-                  isActive={activeId === s.id}
-                  onSelect={() => setActiveId(s.id)}
-                  accent={icpMeta.accent} layout="grid" />
-              ))}
+              {visibleSteps.map((s) => {
+                const hot = spotlight && (s.features || []).includes(spotlight);
+                return (
+                  <StepCard key={s.id} step={s}
+                    isActive={activeId === s.id}
+                    onSelect={() => setActiveId(s.id)}
+                    accent={icpMeta.accent} layout="grid"
+                    spot={!!hot} dim={!!spotlight && !hot} />
+                );
+              })}
             </div>
           )}
 
@@ -981,17 +1107,21 @@ export default function WorkflowMap() {
               scrollSnapType: "x proximity",
               margin: "0 -14px", padding: "0 14px 10px",
             }}>
-              {visibleSteps.map((s) => (
-                <div key={s.id} style={{
-                  scrollSnapAlign: "start",
-                  flex: "0 0 auto",   // don't grow, don't shrink, base on content
-                }}>
-                  <StepCard step={s}
-                    isActive={activeId === s.id}
-                    onSelect={() => setActiveId(s.id)}
-                    accent={icpMeta.accent} layout="strip" />
-                </div>
-              ))}
+              {visibleSteps.map((s) => {
+                const hot = spotlight && (s.features || []).includes(spotlight);
+                return (
+                  <div key={s.id} style={{
+                    scrollSnapAlign: "start",
+                    flex: "0 0 auto",   // don't grow, don't shrink, base on content
+                  }}>
+                    <StepCard step={s}
+                      isActive={activeId === s.id}
+                      onSelect={() => setActiveId(s.id)}
+                      accent={icpMeta.accent} layout="strip"
+                      spot={!!hot} dim={!!spotlight && !hot} />
+                  </div>
+                );
+              })}
             </div>
           )}
         </aside>
@@ -1015,6 +1145,9 @@ export default function WorkflowMap() {
         </span>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: Q.med, display: "inline-block" }} /> Medium
+        </span>
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+          <span style={{ color: Q.brand, fontWeight: 700 }}>★</span> Cornerstone — the step we always demo
         </span>
         <span style={{ opacity: 0.6 }}>·</span>
         <span>
